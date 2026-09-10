@@ -1,0 +1,22 @@
+name: test
+on: [push, pull_request]
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - run: python -m compileall -q app run.py
+      - name: boot and smoke-test
+        run: |
+          export DATA_DIR=/tmp/qrtr-ci PORT=8090 COOKIE_SECURE=0 ALLOW_SIGNUP=1
+          python run.py & APP_PID=$!
+          trap "kill $APP_PID 2>/dev/null || true" EXIT
+          for i in $(seq 1 30); do
+            curl -sf http://localhost:8090/healthz && break || sleep 1
+          done
+          BASE=http://localhost:8090 bash scripts/smoke.sh

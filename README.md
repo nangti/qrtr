@@ -21,6 +21,11 @@ Scan the code with your phone → watch **Stats**.
 
 ## Deploy on your VPS (Docker, one command)
 
+**No domain / no budget? → [docs/DEPLOY-NODOMAIN.md](docs/DEPLOY-NODOMAIN.md): free Oracle VM +
+free DuckDNS name + GitHub CI/CD = ₹0/month.** GitHub itself hosts the code, CI (`.github/workflows/test.yml`),
+Docker images (GHCR), this repo's landing page (`landing/` → GitHub Pages), and auto-deploy —
+but **not** the app runtime (Pages is static-only; that's what the free VM is for).
+
 ```bash
 # DNS first: A records for go.example.com + app.example.com → your VPS IP
 DOMAIN=go.example.com APP_DOMAIN=app.example.com \

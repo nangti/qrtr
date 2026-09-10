@@ -5,6 +5,9 @@ data/
 *.db-shm
 *.mmdb
 
+# Server secrets (.env holds DOMAIN, keys on the VPS)
+.env
+
 # Python
 __pycache__/
 *.pyc
