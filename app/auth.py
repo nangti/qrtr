@@ -4,7 +4,7 @@ for tracking, just the one auth cookie."""
 import functools
 import re
 
-from flask import (Blueprint, Response, g, make_response, redirect,
+from flask import (Blueprint, Response, abort, g, make_response, redirect,
                    render_template, request, url_for)
 
 from .config import Config
@@ -31,6 +31,19 @@ def login_required(view):
     def wrapped(*args, **kwargs):
         if g.user is None:
             return redirect(url_for("auth.login", next=request.path))
+        return view(*args, **kwargs)
+    return wrapped
+
+
+def admin_required(view):
+    """login_required + is_admin. The first registered user is auto-admin
+    (migration in db.py); promote others via SQL or a future UI."""
+    @functools.wraps(view)
+    def wrapped(*args, **kwargs):
+        if g.user is None:
+            return redirect(url_for("auth.login", next=request.path))
+        if not g.user["is_admin"]:
+            abort(403)
         return view(*args, **kwargs)
     return wrapped
 

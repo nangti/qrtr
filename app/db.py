@@ -89,6 +89,17 @@ class DB:
                     " VALUES(?,?,?) ON CONFLICT(plan) DO NOTHING",
                     (plan, max_c, max_s),
                 )
+            # v2: admin flag (CRM-lite). First-registered user auto-promotes to
+            # admin — that is how you bootstrap yourself without a CLI.
+            try:
+                self._conn.execute(
+                    "ALTER TABLE user ADD COLUMN is_admin INTEGER NOT NULL DEFAULT 0")
+            except sqlite3.OperationalError:  # column already exists
+                pass
+            self._conn.execute(
+                "UPDATE user SET is_admin=1 WHERE id ="
+                " (SELECT id FROM user ORDER BY created_at ASC, id ASC LIMIT 1)")
+            self._conn.execute("PRAGMA user_version=2")
             self._conn.commit()
 
     # All access goes through these two helpers so the lock can never be forgotten.

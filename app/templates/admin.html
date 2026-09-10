@@ -1,0 +1,30 @@
+{% extends "layout.html" %}
+{% block title %}Admin{% endblock %}
+{% block content %}
+<div class="pagehead">
+  <div>
+    <h1>Admin · All users</h1>
+    <p class="muted">Your CRM-lite: who signed up, what plan they're on, whether they're getting value.</p>
+  </div>
+</div>
+
+<div class="cards">
+  <div class="card stat"><span class="statnum">{{ data.users|length }}</span><span class="statlbl">users</span></div>
+  <div class="card stat"><span class="statnum">{{ data.total_campaigns|num }}</span><span class="statlbl">campaigns</span></div>
+  <div class="card stat"><span class="statnum">{{ data.total_scans|num }}</span><span class="statlbl">scans recorded</span></div>
+</div>
+
+<div class="card tablewrap">
+  <table>
+    <thead><tr>
+      <th>User</th><th>Plan</th><th class="r">Campaigns</th>
+      <th class="r">Scans this month</th><th>Last scan</th><th>Joined</th>
+    </tr></thead>
+    <tbody>
+    {% for u in data.users %}
+      <tr><td class="mono">{{ u.email }}{% if u.is_admin %} <span class="pill on">admin</span>{% endif %}</td><td><form class="row" method="post" action="{{ url_for('admin.set_plan', uid=u.id) }}"><select name="plan">{% for p in plans %}<option value="{{ p }}" {{ 'selected' if u.plan == p }}>{{ p }}</option>{% endfor %}</select><button class="btn sm" type="submit">Save</button></form></td><td class="r">{{ u.campaigns }}</td><td class="r">{{ u.usage|num }}</td><td class="muted">{{ u.last_scan|ts }}</td><td class="muted">{{ u.created_at[:10] }}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

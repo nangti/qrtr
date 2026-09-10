@@ -55,6 +55,17 @@ case "$CID" in */*|"") bad "campaign create (no code, got '$LOC')";; *)
   chk "user B cannot fetch A's QR" "404" \
       "$(curl -s -o /dev/null -w '%{http_code}' -b "$J2" "$BASE/campaigns/$CID/qr.png")"
 
+  # CRM-lite admin panel (first registered user auto-becomes admin in fresh DBs)
+  ADM="$(curl -s -b "$J1" "$BASE/admin/")"
+  chk "admin panel loads for user A (auto-admin)" "All users" "$ADM"
+  chk "non-admin blocked from /admin" "403" \
+      "$(curl -s -o /dev/null -w '%{http_code}' -b "$J2" "$BASE/admin/")"
+  chk "non-admin cannot flip plans" "403" \
+      "$(curl -s -o /dev/null -w '%{http_code}' -b "$J2" -X POST --data-urlencode "plan=pro" "$BASE/admin/users/whoever/plan")"
+  UID_B="$(echo "$ADM" | grep -oE '/admin/users/[^/]+/plan' | tail -1 | sed 's#/admin/users/##; s#/plan##')"
+  curl -s -o /dev/null -b "$J1" -X POST --data-urlencode "plan=pro" "$BASE/admin/users/$UID_B/plan"
+  chk "admin plan flip sticks (B -> pro)" 'value="pro" selected' "$(curl -s -b "$J1" "$BASE/admin/")"
+
   # quota (free plan = 3): CID already 1; create 2 more, 4th refuses
   curl -s -o /dev/null -b "$J1" -X POST "$BASE/campaigns/new" --data-urlencode "name=q2" --data-urlencode "destination_url=https://example.com/2"
   curl -s -o /dev/null -b "$J1" -X POST "$BASE/campaigns/new" --data-urlencode "name=q3" --data-urlencode "destination_url=https://example.com/3"

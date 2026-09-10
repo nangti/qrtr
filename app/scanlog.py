@@ -39,6 +39,12 @@ class ScanLog:
             self._quota_cache[user_id] = (limited, time.time() + 60)
         return limited
 
+    def invalidate_quota_cache(self, user_id: str):
+        """Called by the admin panel on plan flips so upgrades apply now,
+        not in up to 60 s."""
+        with self._cache_lock:
+            self._quota_cache.pop(user_id, None)
+
     def enqueue(self, campaign_row: dict, ip: str, ua: str, dnt: bool):
         try:
             self.queue.put_nowait((campaign_row, ip, ua, dnt))

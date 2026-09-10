@@ -15,3 +15,6 @@ __pycache__/
 
 # OS / editor
 .DS_Store
+
+# sandbox-persistent venv (platform snapshots exclude .venv but not venv)
+venv/

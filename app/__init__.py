@@ -76,10 +76,11 @@ def create_app() -> Flask:
     app.extensions["qrtr"] = SimpleNamespace(
         db=db, store=store, tracker=tracker, scanlog=scanlog, redir_cache=redir_cache)
 
-    from . import auth, dash, redirect as redir
+    from . import admin as admin_mod, auth, dash, redirect as redir
     app.register_blueprint(auth.bp)
     app.register_blueprint(dash.bp)
     app.register_blueprint(redir.bp)
+    app.register_blueprint(admin_mod.bp)
 
     @app.before_request
     def csrf_guard():
