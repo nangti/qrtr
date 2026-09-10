@@ -1,0 +1,14 @@
+# Runtime data (SQLite DB, geo database) — never commit
+data/
+*.db
+*.db-wal
+*.db-shm
+*.mmdb
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# OS / editor
+.DS_Store

@@ -1,0 +1,36 @@
+{% extends "layout.html" %}
+{% block title %}Privacy{% endblock %}
+{% block content %}
+<div class="authcard wide">
+  <h1>What a scan records — honestly</h1>
+  <p>qrtr exists to answer “did someone scan my poster, roughly from where, on what kind of device.”
+     It is deliberately built so it <b>cannot</b> answer “who exactly was it.”</p>
+
+  <h2>Recorded per scan</h2>
+  <ul>
+    <li><b>Time</b> (UTC), which QR code was scanned.</li>
+    <li><b>Approximate location</b>: country and city only, looked up locally from a static
+        IP-geolocation database. No GPS, ever — and city-level results are approximate.</li>
+    <li><b>Device class, OS, browser</b>, parsed from the User-Agent string.</li>
+    <li>A <b>daily visitor pseudonym</b>: <code>HMAC-SHA256(IP + User-Agent, daily salt)</code>.
+        The salt lives only in RAM and is rotated every day, so the same person scanning today and
+        tomorrow counts as two different pseudonyms — and even the server operator cannot
+        reconstruct an IP from stored data.</li>
+  </ul>
+
+  <h2>Never recorded</h2>
+  <ul>
+    <li><b>Raw IP addresses.</b> Used in memory for the two lookups above, then discarded. Access logs mask them.</li>
+    <li><b>Cookies / fingerprinting for tracking.</b> The only cookie is the login cookie for dashboard users.</li>
+    <li>Precise GPS, names, phone numbers — nothing the scanner's phone doesn't already say out loud.</li>
+  </ul>
+
+  <h2>Retention &amp; choice</h2>
+  <ul>
+    <li>Raw scan rows are <b>deleted after 90 days</b>; only per-day aggregate counts are kept.</li>
+    <li>Browsers sending <b>Do-Not-Track / Global Privacy Control</b> are counted (so totals stay honest)
+        but get <b>no</b> visitor pseudonym.</li>
+    <li>Known bots and link-preview fetchers (WhatsApp, iMessage…) are filtered out of statistics.</li>
+  </ul>
+</div>
+{% endblock %}

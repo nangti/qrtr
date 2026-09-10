@@ -1,0 +1,21 @@
+{% extends "layout.html" %}
+{% block title %}Log in{% endblock %}
+{% block content %}
+<div class="authcard">
+  <h1>Welcome back</h1>
+  <p class="muted">Log in to manage your QR campaigns.</p>
+  {% if error %}<div class="error">{{ error }}</div>{% endif %}
+  <form method="post" action="{{ url_for('auth.login_post') }}{% if request.args.get('next') %}?next={{ request.args.get('next') }}{% endif %}">
+    <label>Email
+      <input type="email" name="email" required autofocus value="{{ email or '' }}">
+    </label>
+    <label>Password
+      <input type="password" name="password" required>
+    </label>
+    <button class="btn primary block" type="submit">Log in</button>
+  </form>
+  {% if signup_open %}
+  <p class="muted center">No account yet? <a href="{{ url_for('auth.signup') }}">Sign up free</a></p>
+  {% endif %}
+</div>
+{% endblock %}

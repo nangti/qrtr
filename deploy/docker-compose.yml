@@ -1,0 +1,45 @@
+# Self-hosted qrtr: app + Caddy (automatic HTTPS). One command:
+#   DOMAIN=go.example.com APP_DOMAIN=app.example.com docker compose -f deploy/docker-compose.yml up -d
+# Both hostnames serve the same app: use the short one for printed QRs (QR density!)
+# and the pretty one for the dashboard. Point both DNS A records at your VPS first.
+services:
+  app:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    environment:
+      # The URL printed into QR codes — the short redirect domain. Must match
+      # what Caddy exposes, or printed QRs will point somewhere unreachable.
+      BASE_URL: ${BASE_URL:-https://${DOMAIN}}
+      COOKIE_SECURE: "1"
+      ALLOW_SIGNUP: ${ALLOW_SIGNUP:-1}
+      SCAN_RETENTION_DAYS: ${SCAN_RETENTION_DAYS:-90}
+    volumes:
+      - qrtr-data:/data
+    restart: unless-stopped
+
+  caddy:
+    image: caddy:2-alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      DOMAIN: ${DOMAIN:?set DOMAIN, e.g. go.example.com}
+      APP_DOMAIN: ${APP_DOMAIN:-${DOMAIN}}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    restart: unless-stopped
+
+  # Optional continuous backup of the SQLite file to S3/B2 (design doc §5).
+  # Uncomment and set env when you have paying customers on the box:
+  # litestream:
+  #   image: litestream/litestream
+  #   volumes: [qrtr-data:/data, ./litestream.yml:/etc/litestream.yml]
+  #   restart: unless-stopped
+
+volumes:
+  qrtr-data:
+  caddy-data:
+  caddy-config:

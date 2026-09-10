@@ -1,0 +1,106 @@
+{% extends "layout.html" %}
+{% block title %}{{ campaign.name }}{% endblock %}
+{% block content %}
+<div class="pagehead">
+  <div>
+    <h1>{{ campaign.name }}
+      {% if campaign.active %}<span class="pill on">live</span>{% else %}<span class="pill off">paused</span>{% endif %}
+    </h1>
+    <p class="muted mono">
+      <button class="chip big" data-copy="{{ short_url }}" title="Copy short link">{{ short_url.replace('https://','') }}</button>
+      → <a href="{{ campaign.destination_url }}" target="_blank" rel="noopener">{{ campaign.destination_url[:60] }}{% if campaign.destination_url|length > 60 %}…{% endif %}</a>
+    </p>
+  </div>
+  <div class="row">
+    <a class="btn" href="{{ url_for('dash.edit_campaign', cid=campaign.id) }}">Edit</a>
+    <form method="post" action="{{ url_for('dash.delete_campaign', cid=campaign.id) }}"
+          data-confirm="Delete this campaign and all its scan history? The printed QR will stop working.">
+      <button class="btn danger" type="submit">Delete</button>
+    </form>
+  </div>
+</div>
+
+<div class="cards">
+  <div class="card stat"><span class="statnum">{{ stats.totals.scans|num }}</span><span class="statlbl">scans · {{ days }}d</span></div>
+  <div class="card stat"><span class="statnum">{{ stats.totals.uniques|num }}</span><span class="statlbl">est. uniques · {{ days }}d</span></div>
+  <div class="card stat"><span class="statnum">{{ stats.bots_filtered|num }}</span><span class="statlbl">bot hits filtered</span></div>
+  <div class="card qr">
+    <img src="{{ url_for('dash.campaign_qr', cid=campaign.id, fmt='png', scale=6) }}" alt="QR code" width="120" height="120">
+    <div class="qrdl">
+      <a class="btn sm" href="{{ url_for('dash.campaign_qr', cid=campaign.id, fmt='svg', download=1) }}">SVG · print</a>
+      <a class="btn sm" href="{{ url_for('dash.campaign_qr', cid=campaign.id, fmt='png', download=1, scale=24) }}">PNG · big</a>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="cardhead">
+    <h2>Scans over time</h2>
+    <div class="pills">
+      {% for r in ranges %}
+      <a class="pill {{ 'on' if days == r }}" href="{{ url_for('dash.campaign_detail', cid=campaign.id, days=r) }}">{{ r }}d</a>
+      {% endfor %}
+    </div>
+  </div>
+  <div style="position:relative;height:260px">
+    <canvas id="sc"></canvas>
+    <p id="nofb" hidden class="muted">Chart library unavailable — numbers below are still accurate.</p>
+  </div>
+</div>
+
+<div class="gridcols">
+  {% macro bt(title, rows) %}
+  <div class="card">
+    <h2>{{ title }}</h2>
+    {% if rows %}<table>
+      {% for k, c in rows %}<tr><td>{{ k }}</td><td class="r">{{ c|num }}</td></tr>{% endfor %}
+    </table>{% else %}<p class="muted">No data yet.</p>{% endif %}
+  </div>
+  {% endmacro %}
+  {{ bt('Countries', stats.countries) }}
+  {{ bt('Cities', stats.cities) }}
+  {{ bt('Devices', stats.devices) }}
+  {{ bt('Browsers', stats.browsers) }}
+  {{ bt('Operating systems', stats.oses) }}
+</div>
+
+<div class="card tablewrap">
+  <div class="cardhead">
+    <h2>Recent scans</h2>
+    <a class="btn sm" href="{{ url_for('dash.campaign_csv', cid=campaign.id) }}">Export CSV</a>
+  </div>
+  {% if stats.recent %}
+  <table>
+    <thead><tr><th>Time</th><th>Country</th><th>City</th><th>Device</th><th>OS</th><th>Browser</th></tr></thead>
+    <tbody>
+      {% for s in stats.recent %}
+      <tr>
+        <td class="mono">{{ s.ts|ts }}</td><td>{{ s.country or '—' }}</td><td>{{ s.city or '—' }}</td>
+        <td>{{ s.device }}</td><td>{{ s.os }}</td><td>{{ s.browser }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="muted">No human scans in this range yet. Print it, stick it, scan it. 📱</p>
+  {% endif %}
+</div>
+
+<script src="{{ url_for('static', filename='chart.umd.js') }}"></script>
+<script>
+const L = {{ stats.labels|tojson }}, S = {{ stats.series_scans|tojson }}, U = {{ stats.series_uniques|tojson }};
+if (window.Chart) {
+  new Chart(document.getElementById('sc'), {
+    type: 'line',
+    data: { labels: L, datasets: [
+      { label: 'Scans', data: S, borderColor: '#6d5ef0', backgroundColor: 'rgba(109,94,240,.15)', fill: true, tension: .3, pointRadius: 0 },
+      { label: 'Est. uniques', data: U, borderColor: '#22b8a6', tension: .3, pointRadius: 0 }
+    ]},
+    options: { responsive: true, maintainAspectRatio: false,
+      scales: { y: { beginAtZero: true, ticks: { precision: 0 } } },
+      plugins: { legend: { position: 'bottom' } },
+      interaction: { mode: 'index', intersect: false } }
+  });
+} else { document.getElementById('nofb').hidden = false; }
+</script>
+{% endblock %}

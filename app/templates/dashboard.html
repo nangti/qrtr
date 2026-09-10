@@ -1,0 +1,66 @@
+{% extends "layout.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+<div class="pagehead">
+  <div>
+    <h1>Your QR campaigns</h1>
+    <p class="muted">
+      Plan <b>{{ g.user.plan }}</b> ·
+      {{ campaigns|length }}/{{ quota.max_campaigns }} campaigns ·
+      {{ usage|num }}/{{ quota.max_scans_month|num }} scans this month
+    </p>
+  </div>
+  <a class="btn primary" href="{{ url_for('dash.new_campaign') }}">+ New QR</a>
+</div>
+
+{% if limited %}
+<div class="banner warn">
+  ⚠ Monthly scan limit reached — <b>your printed QRs still redirect</b>, but new scans are not
+  being logged. Ask the admin to upgrade your plan to resume analytics.
+</div>
+{% endif %}
+
+{% if campaigns %}
+<div class="cards">
+  <div class="card stat"><span class="statnum">{{ total|num }}</span><span class="statlbl">total scans</span></div>
+  <div class="card stat"><span class="statnum">{{ m30|num }}</span><span class="statlbl">last 30 days</span></div>
+  <div class="card stat"><span class="statnum">{{ campaigns|length }}</span><span class="statlbl">live QRs</span></div>
+</div>
+
+<div class="card tablewrap">
+  <table>
+    <thead><tr>
+      <th>Campaign</th><th>Short link</th><th class="r">Scans</th><th class="r">30d</th>
+      <th>Last scan</th><th>Status</th><th class="r">Actions</th>
+    </tr></thead>
+    <tbody>
+    {% for c in campaigns %}
+      <tr>
+        <td><a class="strong" href="{{ url_for('dash.campaign_detail', cid=c.id) }}">{{ c.name }}</a></td>
+        <td class="mono"><button class="chip" data-copy="{{ short_url(c.id) }}" title="Copy">{{ short_url(c.id).replace('https://','') }}</button></td>
+        <td class="r">{{ c.total|num }}</td>
+        <td class="r">{{ c.m30|num }}</td>
+        <td class="muted">{{ c.last_ts|ts }}</td>
+        <td>{% if c.active %}<span class="pill on">live</span>{% else %}<span class="pill off">paused</span>{% endif %}</td>
+        <td class="r actions">
+          <a class="btn sm" href="{{ url_for('dash.campaign_detail', cid=c.id) }}">Stats</a>
+          <a class="btn sm" href="{{ url_for('dash.campaign_qr', cid=c.id, fmt='png', download=1) }}">QR&nbsp;PNG</a>
+          <a class="btn sm" href="{{ url_for('dash.edit_campaign', cid=c.id) }}">Edit</a>
+        </td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="card empty">
+  <h2>Create your first QR 🖨️</h2>
+  <ol>
+    <li>Click <b>+ New QR</b> and paste the destination (portfolio, <code>https://wa.me/…</code>, Google Maps link, catalogue PDF, form — any URL).</li>
+    <li>Download the <b>SVG</b> for the print shop (or PNG for quick tests).</li>
+    <li>Watch scans roll in here — then <b>change the destination any time without reprinting</b>.</li>
+  </ol>
+  <a class="btn primary" href="{{ url_for('dash.new_campaign') }}">+ Create my first QR</a>
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,4 @@
+flask>=3.0,<4
+waitress>=3.0,<4
+segno>=1.6,<2
+maxminddb>=2.2,<4

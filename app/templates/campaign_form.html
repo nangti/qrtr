@@ -1,0 +1,35 @@
+{% extends "layout.html" %}
+{% block title %}{{ 'Edit' if campaign else 'New' }} QR{% endblock %}
+{% block content %}
+<div class="authcard wide">
+  <h1>{{ 'Edit campaign' if campaign else 'New QR campaign' }}</h1>
+  <p class="muted">
+    {% if campaign %}
+      Code <code>{{ campaign.id }}</code> — destination changes apply instantly to every printed copy.
+    {% else %}
+      Paste any http(s) destination: portfolio, <code>https://wa.me/&lt;number&gt;</code> for WhatsApp,
+      a Google-Maps share link, a catalogue PDF, a form — anything.
+    {% endif %}
+  </p>
+  {% if error %}<div class="error">{{ error }}</div>{% endif %}
+  <form method="post">
+    <label>Name <span class="hint">(only you see this — e.g. “Shop window · MG Road”)</span>
+      <input name="name" required maxlength="80" value="{{ form.get('name','') }}">
+    </label>
+    <label>Destination URL
+      <input name="destination_url" type="url" required placeholder="https://…"
+             value="{{ form.get('destination_url','') }}">
+    </label>
+    {% if campaign %}
+    <label class="check">
+      <input type="checkbox" name="active" {% if campaign.active %}checked{% endif %}>
+      Active (when unchecked the printed QR shows “link disabled” and nothing is logged)
+    </label>
+    {% endif %}
+    <div class="row">
+      <button class="btn primary" type="submit">{{ 'Save changes' if campaign else 'Create QR' }}</button>
+      <a class="btn" href="{{ url_for('dash.campaign_detail', cid=campaign.id) if campaign else url_for('dash.home') }}">Cancel</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

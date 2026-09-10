@@ -1,0 +1,18 @@
+# Redirect domain (the one printed in QRs) and dashboard domain both serve the app.
+# Caddy obtains and renews TLS certificates automatically. Mask client IPs in the
+# access log so raw IPs never touch disk (docs/DESIGN.md §5.4).
+{$DOMAIN} {
+	reverse_proxy app:8080
+	log {
+		format filter {
+			fields {
+				request>remote_ip ip_mask 16 32
+				request>headers>X-Forwarded-For delete
+			}
+		}
+	}
+}
+
+{$APP_DOMAIN} {
+	reverse_proxy app:8080
+}

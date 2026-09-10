@@ -1,0 +1,22 @@
+{% extends "layout.html" %}
+{% block title %}Sign up{% endblock %}
+{% block content %}
+<div class="authcard">
+  <h1>Create your account</h1>
+  <p class="muted">Free plan: 3 QR campaigns, 5,000 scans/month. No card required.</p>
+  {% if error %}<div class="error">{{ error }}</div>{% endif %}
+  <form method="post" action="{{ url_for('auth.signup_post') }}">
+    <label>Email
+      <input type="email" name="email" required autofocus value="{{ email or '' }}">
+    </label>
+    <label>Password <span class="hint">(min. 8 characters)</span>
+      <input type="password" name="password" required minlength="8">
+    </label>
+    <label>Repeat password
+      <input type="password" name="password2" required minlength="8">
+    </label>
+    <button class="btn primary block" type="submit">Create account</button>
+  </form>
+  <p class="muted center">Already registered? <a href="{{ url_for('auth.login') }}">Log in</a></p>
+</div>
+{% endblock %}
