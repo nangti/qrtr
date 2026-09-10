@@ -56,6 +56,11 @@ docker compose -f deploy/docker-compose.prod.yml --env-file .env up -d
 Wait ~60 s for TLS issuance, then open `https://qrtr-YOU.duckdns.org` → sign up → create a QR →
 scan it with your phone. ✅
 
+> **If `docker compose … pull` says "unauthorized":** the GHCR package starts out private.
+> One-time fix — github.com/nangti → **Packages → qrtr → Package settings → Change visibility →
+> Public** (the image already carries the `org.opencontainers.image.source` label, so it appears
+> right on the repo's Packages section). ✅
+
 ### 4. Wire auto-deploy (optional, 5 min)
 GitHub repo → Settings → Secrets and variables → Actions → add:
 - `VPS_HOST` = VM public IP · `VPS_USER` = `ubuntu` · `VPS_SSH_KEY` = a **fresh** keypair's private key
