@@ -99,6 +99,9 @@ def account():
     return render_template("account.html", error=None)
 
 
+GROUPS = ("day", "week", "month")
+
+
 @bp.get("/campaigns/<cid>")
 @login_required
 def campaign_detail(cid: str):
@@ -108,9 +111,23 @@ def campaign_detail(cid: str):
         abort(404)
     days = request.args.get("days", 30, type=int)
     days = days if days in RANGES else 30
-    stats = st.scan_stats(g.user["id"], cid, days)
+    group = request.args.get("group", "day")
+    group = group if group in GROUPS else "day"
+    stats = st.scan_stats(g.user["id"], cid, days, group)
     return render_template("campaign_detail.html", campaign=campaign, stats=stats,
-                           days=days, ranges=RANGES, short_url=short_url(cid))
+                           days=days, group=group, ranges=RANGES, groups=GROUPS,
+                           short_url=short_url(cid))
+
+
+@bp.get("/campaigns/<cid>/scans")
+@login_required
+def campaign_scans(cid: str):
+    campaign = svc().store.campaign_for_user(g.user["id"], cid)
+    if not campaign:
+        abort(404)
+    page = max(1, request.args.get("page", 1, type=int))
+    data = svc().store.scans_page(g.user["id"], cid, page)
+    return render_template("scans.html", campaign=campaign, data=data)
 
 
 @bp.route("/campaigns/<cid>/edit", methods=["GET", "POST"])

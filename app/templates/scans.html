@@ -1,0 +1,46 @@
+{% extends "layout.html" %}
+{% block title %}Scan log · {{ campaign.name }}{% endblock %}
+{% block content %}
+<div class="pagehead">
+  <div>
+    <h1>Scan log · {{ campaign.name }}</h1>
+    <p class="muted">Raw log, newest first — includes bot/preview hits (tagged). The Stats
+      dashboard excludes bots; this page is the full trace. For bulk analysis use
+      <a href="{{ url_for('dash.campaign_csv', cid=campaign.id) }}">CSV export</a>.</p>
+  </div>
+  <a class="btn" href="{{ url_for('dash.campaign_detail', cid=campaign.id) }}">← Back to stats</a>
+</div>
+
+<div class="card tablewrap">
+  {% if data.rows %}
+  <table>
+    <thead><tr>
+      <th>#</th><th>Time (UTC)</th><th>Country</th><th>City</th>
+      <th>Device</th><th>OS</th><th>Browser</th><th>Type</th>
+    </tr></thead>
+    <tbody>
+      {% for s in data.rows %}
+      <tr>
+        <td class="muted">{{ s.id }}</td>
+        <td class="mono">{{ s.ts }}</td>
+        <td>{{ s.country or '—' }}</td><td>{{ s.city or '—' }}</td>
+        <td>{{ s.device }}</td><td>{{ s.os }}</td><td>{{ s.browser }}</td>
+        <td>{% if s.is_bot %}<span class="pill off">bot</span>{% else %}<span class="pill on">human</span>{% endif %}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  <div class="row" style="margin-top:.8rem">
+    {% if data.page > 1 %}
+    <a class="btn sm" href="{{ url_for('dash.campaign_scans', cid=campaign.id, page=data.page - 1) }}">← Newer</a>
+    {% endif %}
+    <span class="muted">Page {{ data.page }}</span>
+    {% if data.has_next %}
+    <a class="btn sm" href="{{ url_for('dash.campaign_scans', cid=campaign.id, page=data.page + 1) }}">Older →</a>
+    {% endif %}
+  </div>
+  {% else %}
+  <p class="muted">No scans yet.</p>
+  {% endif %}
+</div>
+{% endblock %}

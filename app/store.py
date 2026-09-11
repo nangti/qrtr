@@ -137,8 +137,9 @@ class Store:
         )
         return row["c"]
 
-    def scan_stats(self, user_id: str, cid: str, days: int):
-        """Everything the campaign detail page needs, tenant-scoped, bots excluded."""
+    def scan_stats(self, user_id: str, cid: str, days: int, group: str = "day"):
+        """Everything the campaign detail page needs, tenant-scoped, bots excluded.
+        group: 'day' | 'week' | 'month' — bucket for the time series (R4)."""
         where = ("c.user_id=? AND s.campaign_id=?", (user_id, cid))
         rng = f"-{int(days)} days"
 
@@ -169,27 +170,65 @@ class Store:
             (user_id, cid, rng),
         )
 
-        # Build a gapless day series for the chart.
-        by_day = {r["d"]: (r["c"], r["u"]) for r in self.db.q(
-            "SELECT date(s.ts) AS d, COUNT(*) AS c, COUNT(DISTINCT s.visitor_id) AS u"
+        # Time-series bucket expression per grouping.
+        if group == "week":  # Monday-start weeks, label = week's Monday date
+            bucket = ("date(s.ts, '-' || ((cast(strftime('%w', s.ts) as integer) + 6) % 7)"
+                      " || ' days')")
+        elif group == "month":
+            bucket = "strftime('%Y-%m', s.ts)"
+        else:
+            group, bucket = "day", "date(s.ts)"
+
+        by_bucket = {r["d"]: (r["c"], r["u"]) for r in self.db.q(
+            f"SELECT {bucket} AS d, COUNT(*) AS c, COUNT(DISTINCT s.visitor_id) AS u"
             + base + " GROUP BY d", (user_id, cid, rng),
         )}
-        labels, scans_s, uniq_s = [], [], []
+
+        # Gapless label walk so empty buckets render as zeroes, not holes.
         today = _now().date()
-        for i in range(days - 1, -1, -1):
-            d = (today - timedelta(days=i)).isoformat()
-            labels.append(d)
-            c, u = by_day.get(d, (0, 0))
+        start = today - timedelta(days=days - 1)
+        labels, scans_s, uniq_s = [], [], []
+        if group == "day":
+            seq = [(start + timedelta(days=i)).isoformat() for i in range(days)]
+        elif group == "week":
+            monday = start - timedelta(days=start.weekday())
+            seq = []
+            d = monday
+            while d <= today:
+                seq.append(d.isoformat())
+                d += timedelta(days=7)
+        else:  # month
+            cur = start.replace(day=1)
+            seq = []
+            while cur <= today:
+                seq.append(cur.strftime("%Y-%m"))
+                nxt = (cur.replace(day=28) + timedelta(days=7))
+                cur = nxt.replace(day=1)
+        for label in seq:
+            labels.append(label)
+            c, u = by_bucket.get(label, (0, 0))
             scans_s.append(c)
             uniq_s.append(u)
 
         return {
+            "group": group,
             "totals": totals, "bots_filtered": bots["c"],
             "countries": breakdown("country"), "cities": breakdown("city"),
             "devices": breakdown("device"), "browsers": breakdown("browser"),
             "oses": breakdown("os"), "recent": recent,
             "labels": labels, "series_scans": scans_s, "series_uniques": uniq_s,
         }
+
+    def scans_page(self, user_id: str, cid: str, page: int, size: int = 100):
+        """Full RAW scan log (bot rows included and tagged) — the traceability view.
+        Fetches size+1 rows so the UI knows whether a next page exists."""
+        rows = self.db.q(
+            "SELECT s.id, s.ts, s.country, s.city, s.device, s.os, s.browser, s.is_bot"
+            " FROM scan s JOIN campaign c ON c.id=s.campaign_id"
+            " WHERE c.user_id=? AND s.campaign_id=? ORDER BY s.id DESC LIMIT ? OFFSET ?",
+            (user_id, cid, size + 1, (page - 1) * size),
+        )
+        return {"rows": rows[:size], "has_next": len(rows) > size, "page": page}
 
     def scans_csv(self, user_id: str, cid: str, limit: int = 10000):
         return self.db.q(

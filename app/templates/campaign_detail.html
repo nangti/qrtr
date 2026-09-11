@@ -37,8 +37,12 @@
   <div class="cardhead">
     <h2>Scans over time</h2>
     <div class="pills">
+      {% for gname in groups %}
+      <a class="pill {{ 'on' if group == gname }}" href="{{ url_for('dash.campaign_detail', cid=campaign.id, days=days, group=gname) }}">{{ gname }}</a>
+      {% endfor %}
+      <span style="color:var(--muted)">·</span>
       {% for r in ranges %}
-      <a class="pill {{ 'on' if days == r }}" href="{{ url_for('dash.campaign_detail', cid=campaign.id, days=r) }}">{{ r }}d</a>
+      <a class="pill {{ 'on' if days == r }}" href="{{ url_for('dash.campaign_detail', cid=campaign.id, days=r, group=group) }}">{{ r }}d</a>
       {% endfor %}
     </div>
   </div>
@@ -67,7 +71,10 @@
 <div class="card tablewrap">
   <div class="cardhead">
     <h2>Recent scans</h2>
-    <a class="btn sm" href="{{ url_for('dash.campaign_csv', cid=campaign.id) }}">Export CSV</a>
+    <div class="row">
+      <a class="btn sm" href="{{ url_for('dash.campaign_scans', cid=campaign.id) }}">Full scan log</a>
+      <a class="btn sm" href="{{ url_for('dash.campaign_csv', cid=campaign.id) }}">Export CSV</a>
+    </div>
   </div>
   {% if stats.recent %}
   <table>

@@ -42,6 +42,14 @@ case "$CID" in */*|"") bad "campaign create (no code, got '$LOC')";; *)
   DET="$(curl -s -b "$J1" "$BASE/campaigns/$CID")"
   chk "1 human scan counted"    '>1</span><span class="statlbl">scans · 30d' "$DET"
   chk "bot preview filtered"    '>1</span><span class="statlbl">bot hits filtered' "$DET"
+  chk "group=month buckets by month" "$(date -u +%Y-%m)" \
+      "$(curl -s -b "$J1" "$BASE/campaigns/$CID?days=30&group=month")"
+  chk "group=week accepted (200)" "200" \
+      "$(curl -s -o /dev/null -w '%{http_code}' -b "$J1" "$BASE/campaigns/$CID?days=30&group=week")"
+  SL="$(curl -s -b "$J1" "$BASE/campaigns/$CID/scans")"
+  chk "full scan log renders (Page 1)" "Page 1" "$SL"
+  chk "scan log tags bot rows as bot" 'pill off">bot' "$SL"
+  chk "scan log shows human scan rows" 'pill on">human' "$SL"
   chk "404 for unknown code" "404" "$(curl -s -o /dev/null -w '%{http_code}' "$BASE/c/nope99")"
   chk "QR PNG served" "image/png" "$(curl -s -o /dev/null -w '%{content_type}' -b "$J1" "$BASE/campaigns/$CID/qr.png")"
   chk "QR SVG served" "image/svg" "$(curl -s -o /dev/null -w '%{content_type}' -b "$J1" "$BASE/campaigns/$CID/qr.svg")"
