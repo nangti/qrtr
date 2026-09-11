@@ -20,3 +20,10 @@ jobs:
             curl -sf http://localhost:8090/healthz && break || sleep 1
           done
           BASE=http://localhost:8090 bash scripts/smoke.sh
+      - name: invite-only mode regression (default config, fresh DB)
+        run: |
+          export DATA_DIR=/tmp/qrtr-ci2 PORT=8091 COOKIE_SECURE=0 ALLOW_SIGNUP=0
+          python run.py & P2=$!
+          trap "kill $P2 2>/dev/null || true" EXIT
+          for i in $(seq 1 30); do curl -sf http://localhost:8091/healthz >/dev/null && break || sleep 1; done
+          BASE=http://localhost:8091 bash scripts/smoke-invite-only.sh

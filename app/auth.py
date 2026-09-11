@@ -4,7 +4,7 @@ for tracking, just the one auth cookie."""
 import functools
 import re
 
-from flask import (Blueprint, Response, abort, g, make_response, redirect,
+from flask import (Blueprint, abort, flash, g, make_response, redirect,
                    render_template, request, url_for)
 
 from .config import Config
@@ -48,6 +48,20 @@ def admin_required(view):
     return wrapped
 
 
+def _user_count() -> int:
+    return svc().store.db.one("SELECT COUNT(*) AS c FROM user")["c"]
+
+
+def signup_open() -> bool:
+    """Open signup, OR nobody exists yet (owner bootstrap on fresh installs)."""
+    return Config.ALLOW_SIGNUP or _user_count() == 0
+
+
+def bootstrap_mode() -> bool:
+    """Fresh install, invite-only config → first form is the owner's account."""
+    return not Config.ALLOW_SIGNUP and _user_count() == 0
+
+
 def _start_session(user_id: str, target: str):
     token = new_session_token()
     svc().store.create_session(token, user_id, Config.SESSION_DAYS)
@@ -75,7 +89,8 @@ def _safe_next() -> str:
 def login():
     if g.user:
         return redirect(url_for("dash.home"))
-    return render_template("login.html", error=None, signup_open=Config.ALLOW_SIGNUP)
+    return render_template("login.html", error=None,
+                           signup_open=signup_open(), bootstrap=bootstrap_mode())
 
 
 @bp.post("/login")
@@ -86,28 +101,32 @@ def login_post():
     if user and verify_password(password, user["password_hash"]):
         return _start_session(user["id"], _safe_next())
     return render_template("login.html", error="Invalid email or password.",
-                           signup_open=Config.ALLOW_SIGNUP, email=email), 401
+                           signup_open=signup_open(), bootstrap=bootstrap_mode(),
+                           email=email), 401
 
 
 @bp.get("/signup")
 def signup():
-    if not Config.ALLOW_SIGNUP:
-        return redirect(url_for("auth.login"))
     if g.user:
         return redirect(url_for("dash.home"))
-    return render_template("signup.html", error=None)
+    if not signup_open():
+        flash("This deployment is invite-only — ask the owner for an account.")
+        return redirect(url_for("auth.login"))
+    return render_template("signup.html", error=None, bootstrap=bootstrap_mode())
 
 
 @bp.post("/signup")
 def signup_post():
-    if not Config.ALLOW_SIGNUP:
+    if not signup_open():
+        flash("This deployment is invite-only — ask the owner for an account.")
         return redirect(url_for("auth.login"))
     email = request.form.get("email", "").strip().lower()
     pw = request.form.get("password", "")
     pw2 = request.form.get("password2", "")
 
     def fail(msg):
-        return render_template("signup.html", error=msg, email=email), 400
+        return render_template("signup.html", error=msg, email=email,
+                               bootstrap=bootstrap_mode()), 400
 
     if not EMAIL_RE.match(email):
         return fail("Enter a valid email address.")

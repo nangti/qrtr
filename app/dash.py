@@ -78,6 +78,27 @@ def new_campaign():
     return render_template("campaign_form.html", error=None, campaign=None, form={})
 
 
+@bp.route("/account", methods=["GET", "POST"])
+@login_required
+def account():
+    from .security import hash_password, verify_password
+    if request.method == "POST":
+        cur = request.form.get("current_password", "")
+        new = request.form.get("password", "")
+        rep = request.form.get("password2", "")
+        fresh = svc().store.user_by_id(g.user["id"])
+        if not verify_password(cur, fresh["password_hash"]):
+            return render_template("account.html", error="Current password is wrong."), 400
+        if len(new) < 8:
+            return render_template("account.html", error="New password must be at least 8 characters."), 400
+        if new != rep:
+            return render_template("account.html", error="New passwords do not match."), 400
+        svc().store.update_password(g.user["id"], hash_password(new))
+        flash("Password updated.")
+        return redirect(url_for("dash.account"))
+    return render_template("account.html", error=None)
+
+
 @bp.get("/campaigns/<cid>")
 @login_required
 def campaign_detail(cid: str):

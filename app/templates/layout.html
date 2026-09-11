@@ -17,7 +17,7 @@
     {% if g.user %}
       <a href="{{ url_for('dash.home') }}">Dashboard</a>
       {% if g.user['is_admin'] %}<a href="{{ url_for('admin.home') }}">Admin</a>{% endif %}
-      <a href="{{ url_for('dash.privacy') }}">Privacy</a>
+      <a href="{{ url_for('dash.account') }}">Account</a>
       <a class="cta" href="{{ url_for('dash.new_campaign') }}">+ New QR</a>
       <form method="post" action="{{ url_for('auth.logout') }}" class="inline">
         <button class="linklike" title="{{ g.user.email }}">Log out</button>

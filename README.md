@@ -51,7 +51,7 @@ A €3.79 Hetzner CX22 (or Oracle's free ARM tier — see docs/MULTITENANT.md §
 |---|---|---|
 | `BASE_URL` | *(request host)* | URL written into QRs — set to your short domain in production |
 | `DATA_DIR` | `./data` | SQLite + geo.mmdb location |
-| `ALLOW_SIGNUP` | `1` | `0` = invite-only |
+| `ALLOW_SIGNUP` | `0` | **invite-only by default**: the first-ever signup (the owner/admin) is always allowed on a fresh install, then signup closes; admins invite more users from the Admin panel. `1` = open public signup |
 | `COOKIE_SECURE` | `1` | set `0` only for plain-http local dev |
 | `SCAN_RETENTION_DAYS` | `90` | raw scans pruned after this; daily aggregates kept |
 | `PORT` | `8080` | listen port |

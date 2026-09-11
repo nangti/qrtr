@@ -20,8 +20,10 @@ class Config:
     # or the Arena preview). Set COOKIE_SECURE=0 only for plain-http local dev.
     COOKIE_SECURE = _flag("COOKIE_SECURE", "1")
 
-    # Open self-service signup. Set to 0 to run invite-only (create users via CLI).
-    ALLOW_SIGNUP = _flag("ALLOW_SIGNUP", "1")
+    # Open self-service signup. Default 0 = invite-only: the FIRST-ever signup
+    # is still allowed (the owner bootstraps their account on a fresh install),
+    # afterwards only the admin panel can create users. Set 1 for open signup.
+    ALLOW_SIGNUP = _flag("ALLOW_SIGNUP", "0")
 
     # We always run behind a reverse proxy (Caddy / preview edge) that sets
     # X-Forwarded-For. If you ever expose the app directly, set this to 0.

@@ -1,0 +1,22 @@
+{% extends "layout.html" %}
+{% block title %}Account{% endblock %}
+{% block content %}
+<div class="authcard wide">
+  <h1>Account</h1>
+  <p class="muted mono">{{ g.user.email }} · plan <b>{{ g.user.plan }}</b></p>
+  <h2>Change password</h2>
+  {% if error %}<div class="error">{{ error }}</div>{% endif %}
+  <form method="post" action="{{ url_for('dash.account') }}">
+    <label>Current password
+      <input type="password" name="current_password" required>
+    </label>
+    <label>New password <span class="hint">(min. 8 characters)</span>
+      <input type="password" name="password" required minlength="8">
+    </label>
+    <label>Repeat new password
+      <input type="password" name="password2" required minlength="8">
+    </label>
+    <button class="btn primary" type="submit">Update password</button>
+  </form>
+</div>
+{% endblock %}

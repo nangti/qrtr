@@ -15,7 +15,12 @@
     <button class="btn primary block" type="submit">Log in</button>
   </form>
   {% if signup_open %}
-  <p class="muted center">No account yet? <a href="{{ url_for('auth.signup') }}">Sign up free</a></p>
+  <p class="muted center">
+    {% if bootstrap %}Fresh install? <a href="{{ url_for('auth.signup') }}">Create the owner account</a>
+    {% else %}No account yet? <a href="{{ url_for('auth.signup') }}">Sign up free</a>{% endif %}
+  </p>
+  {% else %}
+  <p class="muted center">Invite-only deployment — ask the owner for an account.</p>
   {% endif %}
 </div>
 {% endblock %}

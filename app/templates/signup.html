@@ -1,9 +1,17 @@
 {% extends "layout.html" %}
-{% block title %}Sign up{% endblock %}
+{% block title %}{{ 'Create owner account' if bootstrap else 'Sign up' }}{% endblock %}
 {% block content %}
 <div class="authcard">
+  {% if bootstrap %}
+  <h1>Welcome to qrtr 👋</h1>
+  <p class="muted">
+    <b>Fresh install</b> — this creates the <b>owner (admin) account</b>.
+    Signup closes automatically right after; you'll invite everyone else from the Admin panel.
+  </p>
+  {% else %}
   <h1>Create your account</h1>
   <p class="muted">Free plan: 3 QR campaigns, 5,000 scans/month. No card required.</p>
+  {% endif %}
   {% if error %}<div class="error">{{ error }}</div>{% endif %}
   <form method="post" action="{{ url_for('auth.signup_post') }}">
     <label>Email
@@ -15,7 +23,7 @@
     <label>Repeat password
       <input type="password" name="password2" required minlength="8">
     </label>
-    <button class="btn primary block" type="submit">Create account</button>
+    <button class="btn primary block" type="submit">{{ 'Create owner account' if bootstrap else 'Create account' }}</button>
   </form>
   <p class="muted center">Already registered? <a href="{{ url_for('auth.login') }}">Log in</a></p>
 </div>

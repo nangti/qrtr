@@ -14,6 +14,15 @@
   <div class="card stat"><span class="statnum">{{ data.total_scans|num }}</span><span class="statlbl">scans recorded</span></div>
 </div>
 
+<div class="card" style="margin-bottom:1rem">
+  <h2>Invite a user</h2>
+  <form class="row" method="post" action="{{ url_for('admin.add_user') }}">
+    <input name="email" type="email" required placeholder="their@email.com" style="flex:2;padding:.42rem .7rem;border:1px solid var(--line);border-radius:8px;font:inherit">
+    <input name="password" type="text" placeholder="password (blank = generate)" style="flex:2;padding:.42rem .7rem;border:1px solid var(--line);border-radius:8px;font:inherit">
+    <button class="btn primary" type="submit">+ Add user</button>
+  </form>
+</div>
+
 <div class="card tablewrap">
   <table>
     <thead><tr>

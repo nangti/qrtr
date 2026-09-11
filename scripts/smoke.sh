@@ -66,6 +66,18 @@ case "$CID" in */*|"") bad "campaign create (no code, got '$LOC')";; *)
   curl -s -o /dev/null -b "$J1" -X POST --data-urlencode "plan=pro" "$BASE/admin/users/$UID_B/plan"
   chk "admin plan flip sticks (B -> pro)" 'value="pro" selected' "$(curl -s -b "$J1" "$BASE/admin/")"
 
+  # invite-only user management: admin invites C, C logs in, changes password
+  U3="ci-c-$RUN_ID@qrtr.test"; J3="$(mktemp)"
+  chk "admin invites user C (explicit password)" "302" \
+      "$(curl -s -o /dev/null -w '%{http_code}' -b "$J1" -X POST --data-urlencode "email=$U3" --data-urlencode "password=$PW" "$BASE/admin/users/add")"
+  chk "invited user C can log in" "302" \
+      "$(curl -s -o /dev/null -w '%{http_code}' -c "$J3" -X POST "$BASE/login" --data-urlencode "email=$U3" --data-urlencode "password=$PW")"
+  chk "user C sees dashboard" "Your QR campaigns" "$(curl -s -b "$J3" "$BASE/")"
+  chk "user C changes password" "302" \
+      "$(curl -s -o /dev/null -w '%{http_code}' -b "$J3" -X POST --data-urlencode "current_password=$PW" --data-urlencode "password=${PW}x" --data-urlencode "password2=${PW}x" "$BASE/account")"
+  chk "user C logs in with NEW password" "302" \
+      "$(curl -s -o /dev/null -w '%{http_code}' -X POST "$BASE/login" --data-urlencode "email=$U3" --data-urlencode "password=${PW}x")"
+
   # quota (free plan = 3): CID already 1; create 2 more, 4th refuses
   curl -s -o /dev/null -b "$J1" -X POST "$BASE/campaigns/new" --data-urlencode "name=q2" --data-urlencode "destination_url=https://example.com/2"
   curl -s -o /dev/null -b "$J1" -X POST "$BASE/campaigns/new" --data-urlencode "name=q3" --data-urlencode "destination_url=https://example.com/3"

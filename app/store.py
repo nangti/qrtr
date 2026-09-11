@@ -65,6 +65,9 @@ class Store:
     def delete_session(self, token: str):
         self.db.exec("DELETE FROM session WHERE token=?", (token,))
 
+    def update_password(self, user_id: str, password_hash: str):
+        self.db.exec("UPDATE user SET password_hash=? WHERE id=?", (password_hash, user_id))
+
     # ---- campaigns (always tenant-scoped) ---------------------------------
     def create_campaign(self, user_id: str, name: str, destination_url: str, code_len: int) -> str:
         for _ in range(5):

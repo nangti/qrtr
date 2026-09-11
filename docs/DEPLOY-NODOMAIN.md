@@ -49,7 +49,9 @@ cat > .env <<EOF
 DOMAIN=qrtr-YOU.duckdns.org
 APP_DOMAIN=qrtr-YOU.duckdns.org
 BASE_URL=https://qrtr-YOU.duckdns.org
-ALLOW_SIGNUP=1
+# Signup is invite-only by default: the FIRST account you create becomes the
+# owner/admin, after which signup closes and you invite users from /admin.
+# Set ALLOW_SIGNUP=1 only when you launch publicly.
 EOF
 docker compose -f deploy/docker-compose.prod.yml --env-file .env up -d
 ```
