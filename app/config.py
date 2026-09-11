@@ -24,6 +24,10 @@ class Config:
     # is still allowed (the owner bootstraps their account on a fresh install),
     # afterwards only the admin panel can create users. Set 1 for open signup.
     ALLOW_SIGNUP = _flag("ALLOW_SIGNUP", "0")
+    # Preview/demo shortcuts for ephemeral sandboxes only — NEVER in real
+    # deployments: visitors are auto-logged-in as a seeded demo user and
+    # login/signup pages bypass themselves.
+    DEMO_MODE = _flag("DEMO_MODE", "0")
 
     # We always run behind a reverse proxy (Caddy / preview edge) that sets
     # X-Forwarded-For. If you ever expose the app directly, set this to 0.

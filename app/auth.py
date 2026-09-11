@@ -20,6 +20,10 @@ EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 @bp.before_app_request
 def load_user():
     g.user = None
+    if Config.DEMO_MODE:  # preview-only: everyone rides the seeded demo user
+        from .demo import ensure_demo_state
+        g.user = ensure_demo_state()
+        return
     token = request.cookies.get(SESSION_COOKIE)
     if token:
         g.user = svc().store.user_for_session(token, Config.SESSION_DAYS)
@@ -96,6 +100,8 @@ def login():
 
 @bp.post("/login")
 def login_post():
+    if Config.DEMO_MODE:
+        return redirect(url_for("dash.home"))
     # 10 attempts / minute / IP — bot blasts get 429, humans never notice.
     if not svc().ratelimit.allow(f"login:{client_ip_for_rl()}", 10, 60):
         return render_template("login.html", error="Too many attempts — wait a minute and retry.",
@@ -122,6 +128,8 @@ def signup():
 
 @bp.post("/signup")
 def signup_post():
+    if Config.DEMO_MODE:
+        return redirect(url_for("dash.home"))
     if not svc().ratelimit.allow(f"signup:{client_ip_for_rl()}", 5, 300):
         flash("Too many signup attempts from this network — try again shortly.")
         return redirect(url_for("auth.login"))
