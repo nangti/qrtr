@@ -19,6 +19,11 @@ Open the URL → **Sign up** → **+ New QR** → paste any destination (portfol
 `https://wa.me/<number>`, Maps share link, catalogue PDF, form) → download **SVG** (print) or PNG.
 Scan the code with your phone → watch **Stats**.
 
+Print-shops: **Bulk create** pastes `Name,https://url` lines (one per QR, quota-aware) and returns
+a pageful of ready links, then **Download ZIP** hands back print-named PNGs (`<slug>-<code>.png`)
+plus an `index.csv` mapping. Admins can invite users, flip plans, and **reset a user's password**
+(one-time temporary password shown in a flash).
+
 ## Deploy on your VPS (Docker, one command)
 
 **No domain / no budget? → [docs/DEPLOY-NODOMAIN.md](docs/DEPLOY-NODOMAIN.md): free Oracle VM +
@@ -64,6 +69,15 @@ A €3.79 Hetzner CX22 (or Oracle's free ARM tier — see docs/MULTITENANT.md §
 3. **Privacy pipeline** — no raw IPs stored (city lookup + daily-rotating HMAC salt in RAM only),
    no cookies for scanners, DNT/GPC respected, link-preview bots filtered, 90-day retention with rollups.
 4. **302 + `Cache-Control: no-store`, always** — a 301 would be cached by browsers and kill both tracking and edits.
+5. **CSRF on every authed mutation** — stateless per-session HMAC token (`HMAC(session_cookie, 'qrtr-csrf')[:32]`,
+   stateless = survives restarts) + `Sec-Fetch-Site` cross-site block. Login/signup (pre-auth) rely on
+   Sec-Fetch + per-IP rate limits.
+6. **Rate limits where abuse hurts** (in-memory sliding window, zero deps) — login 10/min/IP,
+   signup 5/5min/IP, invites 30/5min, bulk create 10/5min, account changes 10/5min. 429s on breach.
+
+**Traceable analytics:** dashboard stats exclude bots (dekha = sach), while **Full scan log**
+(`/campaigns/<code>/scans`) shows *every* hit tagged human/bot for reconciliation, plus a
+weekday×hour heatmap (UTC) for posting-timing decisions. Group trends by day / week (Mon-start) / month.
 
 ## Roadmap (post-MVP, in priority order)
 

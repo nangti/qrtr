@@ -4,6 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}qrtr{% endblock %} · qrtr</title>
+  {% if g.user %}<meta name="csrf-token" content="{{ csrf_token() }}">{% endif %}
   <link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><rect width='7' height='7' fill='%236d5ef0'/><rect x='9' width='7' height='7' fill='%23111'/><rect y='9' width='7' height='7' fill='%23111'/><rect x='9' y='9' width='7' height='7' fill='%236d5ef0'/></svg>">
 </head>
@@ -20,6 +21,7 @@
       <a href="{{ url_for('dash.account') }}">Account</a>
       <a class="cta" href="{{ url_for('dash.new_campaign') }}">+ New QR</a>
       <form method="post" action="{{ url_for('auth.logout') }}" class="inline">
+        <input type="hidden" name="csrf" value="{{ csrf_token() }}">
         <button class="linklike" title="{{ g.user.email }}">Log out</button>
       </form>
     {% else %}

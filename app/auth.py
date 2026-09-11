@@ -8,6 +8,7 @@ from flask import (Blueprint, abort, flash, g, make_response, redirect,
                    render_template, request, url_for)
 
 from .config import Config
+from .netutil import client_ip as client_ip_for_rl
 from .security import (hash_password, new_session_token, verify_password)
 from .svc import svc
 
@@ -95,6 +96,10 @@ def login():
 
 @bp.post("/login")
 def login_post():
+    # 10 attempts / minute / IP — bot blasts get 429, humans never notice.
+    if not svc().ratelimit.allow(f"login:{client_ip_for_rl()}", 10, 60):
+        return render_template("login.html", error="Too many attempts — wait a minute and retry.",
+                               signup_open=signup_open(), bootstrap=bootstrap_mode()), 429
     email = request.form.get("email", "").strip().lower()
     password = request.form.get("password", "")
     user = svc().store.user_by_email(email)
@@ -117,6 +122,9 @@ def signup():
 
 @bp.post("/signup")
 def signup_post():
+    if not svc().ratelimit.allow(f"signup:{client_ip_for_rl()}", 5, 300):
+        flash("Too many signup attempts from this network — try again shortly.")
+        return redirect(url_for("auth.login"))
     if not signup_open():
         flash("This deployment is invite-only — ask the owner for an account.")
         return redirect(url_for("auth.login"))

@@ -15,6 +15,7 @@
     <a class="btn" href="{{ url_for('dash.edit_campaign', cid=campaign.id) }}">Edit</a>
     <form method="post" action="{{ url_for('dash.delete_campaign', cid=campaign.id) }}"
           data-confirm="Delete this campaign and all its scan history? The printed QR will stop working.">
+      <input type="hidden" name="csrf" value="{{ csrf_token() }}">
       <button class="btn danger" type="submit">Delete</button>
     </form>
   </div>
@@ -50,6 +51,23 @@
     <canvas id="sc"></canvas>
     <p id="nofb" hidden class="muted">Chart library unavailable — numbers below are still accurate.</p>
   </div>
+</div>
+
+<div class="card tablewrap">
+  <h2>Scan heatmap <span class="hint">(weekday × hour, UTC · human scans)</span></h2>
+  <table class="hm">
+    <thead><tr><th></th>{% for h in range(24) %}<th>{{ h }}</th>{% endfor %}</tr></thead>
+    <tbody>
+      {% for name, cells in stats.heatmap.rows %}
+      <tr>
+        <th>{{ name }}</th>
+        {% for c in cells %}
+        <td {% if c %}style="background:rgba(109,94,240,{{ '%.2f'|format(0.25 + 0.75 * c / stats.heatmap.max) }})" title="{{ c }} scan{{ 's' if c != 1 }}"{% endif %}>{% if c %}{{ c }}{% endif %}</td>
+        {% endfor %}
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
 </div>
 
 <div class="gridcols">

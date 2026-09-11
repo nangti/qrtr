@@ -5,18 +5,12 @@ Always 302 + no-store: a 301 would be cached by browsers and would kill both
 tracking and destination edits (docs/DESIGN.md risk #2)."""
 from flask import Blueprint, Response, redirect, render_template, request
 
-from .config import Config
+from flask import Blueprint, Response, redirect, render_template, request
+
+from .netutil import client_ip
 from .svc import svc
 
 bp = Blueprint("redirect", __name__)
-
-
-def client_ip() -> str:
-    if Config.TRUST_PROXY:
-        fwd = request.headers.get("X-Forwarded-For", "")
-        if fwd:
-            return fwd.split(",")[0].strip()
-    return request.remote_addr or ""
 
 
 @bp.get("/c/<code>")

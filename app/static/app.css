@@ -89,6 +89,11 @@ tr:last-child td{border-bottom:none}
 .authcard form .row{margin-top:1rem}
 .foot{text-align:center;color:var(--muted);font-size:.82rem;padding:1.6rem 1rem 2.2rem}
 
+/* weekday×hour heatmap */
+table.hm{border-collapse:collapse;width:auto}
+table.hm th{font-size:.62rem;color:var(--muted);padding:1px 2px;text-align:center;min-width:16px;text-transform:none;letter-spacing:0}
+table.hm td{width:16px;height:18px;font-size:.6rem;text-align:center;color:#fff;border:1px solid #f2f0fa;border-radius:2px}
+
 @media(max-width:640px){
   .pagehead{flex-direction:column}
   .nav{flex-wrap:wrap;gap:.5rem}

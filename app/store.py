@@ -210,6 +210,21 @@ class Store:
             scans_s.append(c)
             uniq_s.append(u)
 
+        # Weekday × hour heatmap (Mon..Sun × 0..23 UTC), humans only.
+        heat_rows = self.db.q(
+            "SELECT cast(strftime('%w', s.ts) AS integer) AS wd,"
+            " cast(strftime('%H', s.ts) AS integer) AS hr, COUNT(*) AS c"
+            + base + " GROUP BY wd, hr", (user_id, cid, rng),
+        )
+        grid = [[0] * 24 for _ in range(7)]
+        heat_max = 0
+        for r in heat_rows:
+            i = (r["wd"] - 1) % 7  # SQLite %w: 0=Sunday → Monday-first index
+            grid[i][r["hr"]] = r["c"]
+            heat_max = max(heat_max, r["c"])
+        heatmap = {"rows": list(zip(["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"], grid)),
+                   "max": heat_max}
+
         return {
             "group": group,
             "totals": totals, "bots_filtered": bots["c"],
@@ -217,6 +232,7 @@ class Store:
             "devices": breakdown("device"), "browsers": breakdown("browser"),
             "oses": breakdown("os"), "recent": recent,
             "labels": labels, "series_scans": scans_s, "series_uniques": uniq_s,
+            "heatmap": heatmap,
         }
 
     def scans_page(self, user_id: str, cid: str, page: int, size: int = 100):

@@ -3,6 +3,7 @@ plus public utility routes (/privacy, /healthz)."""
 import csv
 import io
 import re
+import zipfile
 
 from flask import (Blueprint, Response, abort, flash, g, redirect,
                    render_template, request, url_for)
@@ -83,6 +84,8 @@ def new_campaign():
 def account():
     from .security import hash_password, verify_password
     if request.method == "POST":
+        if not svc().ratelimit.allow(f"acct:{g.user['id']}", 10, 300):
+            return render_template("account.html", error="Too many attempts — wait a few minutes."), 429
         cur = request.form.get("current_password", "")
         new = request.form.get("password", "")
         rep = request.form.get("password2", "")
@@ -158,6 +161,63 @@ def delete_campaign(cid: str):
         svc().redir_cache.invalidate(cid)
         flash("Campaign and its scan history deleted. The printed QR will now 404.")
     return redirect(url_for("dash.home"))
+
+
+@bp.route("/campaigns/bulk", methods=["GET", "POST"])
+@login_required
+def bulk_create():
+    """Paste 'name,https://destination' lines → N campaigns at once, honouring
+    the plan's campaign quota. The print-shop workflow: one paste, one ZIP."""
+    st = svc().store
+    if request.method == "POST":
+        if not svc().ratelimit.allow(f"bulk:{g.user['id']}", 10, 300):
+            flash("Bulk creation rate limit hit — wait a few minutes.")
+            return redirect(url_for("dash.bulk_create"))
+        quota = st.plan_quota(g.user["plan"])
+        have = st.campaign_count(g.user["id"])
+        created, errors = [], []
+        for i, line in enumerate(request.form.get("csv", "").splitlines(), start=1):
+            line = line.strip()
+            if not line:
+                continue
+            if have + len(created) >= quota["max_campaigns"]:
+                errors.append((i, "plan campaign limit reached — this and any further lines skipped"))
+                break
+            name, sep, dest = line.partition(",")
+            name, dest = name.strip(), dest.strip()
+            if not sep or not name or not DEST_RE.match(dest) or len(dest) > 2048:
+                errors.append((i, f"invalid line: {line[:60]}"))
+                continue
+            cid = st.create_campaign(g.user["id"], name[:80], dest, Config.CODE_LENGTH)
+            created.append({"id": cid, "name": name, "dest": dest, "short": short_url(cid)})
+        return render_template("bulk.html", created=created, errors=errors,
+                               quota=quota, form={"csv": request.form.get("csv", "")})
+    return render_template("bulk.html", created=None, errors=None,
+                           quota=st.plan_quota(g.user["plan"]), form={})
+
+
+@bp.post("/campaigns/qr.zip")
+@login_required
+def qr_zip():
+    """ZIP of print-ready PNGs + index.csv for the given tenant-owned codes."""
+    codes = [c for c in request.form.get("codes", "").split(",") if c][:50]
+    st = svc().store
+    buf = io.BytesIO()
+    out = io.StringIO()
+    w = csv.writer(out)
+    w.writerow(["name", "short_url", "destination_url"])
+    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as z:
+        for code in codes:
+            campaign = st.campaign_for_user(g.user["id"], code)  # tenant guard
+            if not campaign:
+                continue
+            target = short_url(code)
+            slug = re.sub(r"[^A-Za-z0-9]+", "-", campaign["name"]).strip("-") or "qr"
+            z.writestr(f"{slug}-{code}.png", qr_png(target, scale=12))
+            w.writerow([campaign["name"], target, campaign["destination_url"]])
+        z.writestr("index.csv", out.getvalue())
+    return Response(buf.getvalue(), mimetype="application/zip", headers={
+        "Content-Disposition": 'attachment; filename="qrtr-qrcodes.zip"'})
 
 
 @bp.get("/campaigns/<cid>/qr.<fmt>")

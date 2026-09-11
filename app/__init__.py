@@ -1,21 +1,34 @@
 """App factory: wires DB, tracking, async scan pipeline, redirect cache,
 blueprints, security headers, and the hourly retention job."""
+import hashlib
+import hmac as hmac_mod
 import logging
 import os
 import threading
 import time
 from types import SimpleNamespace
 
-from flask import Flask, request
+from flask import Flask, abort, g, request
 
 from .config import Config
 from .db import DB
+from .ratelimit import RateLimit
 from .scanlog import ScanLog
 from .store import Store
 from .track import Tracker
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
 log = logging.getLogger("qrtr")
+
+
+def csrf_token_value() -> str:
+    """Per-session CSRF token = HMAC(session_token, 'qrtr-csrf'). Stateless and
+    restart-proof; the session token lives server-side, so we can always
+    recompute; an attacker can't read the HttpOnly cookie to forge it."""
+    tok = request.cookies.get("qrtr_sid", "")
+    if not tok:
+        return ""
+    return hmac_mod.new(tok.encode(), b"qrtr-csrf", hashlib.sha256).hexdigest()[:32]
 
 
 class RedirectCache:
@@ -74,7 +87,8 @@ def create_app() -> Flask:
     scanlog = ScanLog(store, tracker)
     redir_cache = RedirectCache(store)
     app.extensions["qrtr"] = SimpleNamespace(
-        db=db, store=store, tracker=tracker, scanlog=scanlog, redir_cache=redir_cache)
+        db=db, store=store, tracker=tracker, scanlog=scanlog,
+        redir_cache=redir_cache, ratelimit=RateLimit())
 
     from . import admin as admin_mod, auth, dash, redirect as redir
     app.register_blueprint(auth.bp)
@@ -84,16 +98,32 @@ def create_app() -> Flask:
 
     @app.before_request
     def csrf_guard():
-        """Session cookie is SameSite=None (iframe embeddable) — so enforce CSRF
-        protection via the Fetch Metadata header every modern browser sends.
-        Absent header (old browser, curl) → allowed through; 'cross-site' POST
-        → rejected. TODO: add per-form tokens before OAuth/third-party embeds.
+        """Layered CSRF defence (cookie is SameSite=None for iframe embeds,
+        so we cannot lean on SameSite at all):
+        1. Fetch Metadata (Sec-Fetch-Site) — rejects cross-site POSTs in
+           every modern browser; absent header (old browser, curl) passes.
+        2. Per-session HMAC token — every authenticated POST must carry a
+           hidden `csrf` field = HMAC(session_token, 'qrtr-csrf'). The token
+           is stateless, restart-proof, and never stored beyond the session
+           row that already exists. Pre-auth posts (login/signup) have no
+           session to sign against — they get layer 1 + rate limits.
         """
-        if request.method in ("POST", "PUT", "PATCH", "DELETE"):
-            site = request.headers.get("Sec-Fetch-Site")
-            if site == "cross-site":
-                log.warning("blocked cross-site %s on %s", request.method, request.path)
-                return "Forbidden", 403
+        if request.method not in ("POST", "PUT", "PATCH", "DELETE"):
+            return
+        site = request.headers.get("Sec-Fetch-Site")
+        if site == "cross-site":
+            log.warning("blocked cross-site %s on %s", request.method, request.path)
+            abort(403)
+        if g.user is not None:  # only enforce for authenticated mutations
+            expected = csrf_token_value()
+            given = request.form.get("csrf", "")
+            if not given or not hmac_mod.compare_digest(given, expected):
+                log.warning("csrf rejected: %s %s", request.method, request.path)
+                abort(403)
+
+    @app.context_processor
+    def inject_csrf():
+        return {"csrf_token": csrf_token_value}
 
     @app.after_request
     def security_headers(resp):
